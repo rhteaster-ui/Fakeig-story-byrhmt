@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryGen | Vibe Generator</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons untuk UI Form -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505; 
+            color: #f4f4f5;
+            overflow-x: hidden;
+        }
+
+        /* Background Efek Noise */
+        .bg-noise {
+            background-image: url('https://grainy-gradients.vercel.app/noise.svg');
+            opacity: 0.04;
+            pointer-events: none;
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        /* Custom Scrollbar */
+        textarea::-webkit-scrollbar { 
+            width: 6px; 
+        }
+        textarea::-webkit-scrollbar-track { 
+            background: transparent; 
+        }
+        textarea::-webkit-scrollbar-thumb { 
+            background: #27272a; 
+            border-radius: 10px; 
+        }
+
+        /* Animasi Popup */
+        .popup-enter { 
+            opacity: 1 !important; 
+            pointer-events: auto !important; 
+        }
+        .popup-scale { 
+            transform: scale(1) !important; 
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-rose-500/30">
+    
+    <div class="bg-noise"></div>
+
+    <!-- ==========================================
+         POPUP WELCOME & TIPS
+         ========================================== -->
+    <div id="welcomePopup" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-500 p-4">
+        <div id="popupBox" class="bg-zinc-950 border border-zinc-800 p-6 rounded-[32px] max-w-sm w-full transform scale-90 transition-transform duration-500 shadow-2xl relative">
+            
+            <!-- Tombol Close (X) -->
+            <button id="closePopupBtn" class="absolute top-4 right-4 bg-zinc-900 text-zinc-400 hover:text-white p-2 rounded-full transition-colors">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+
+            <!-- Judul Popup -->
+            <div class="text-center mb-6 mt-2">
+                <h2 class="text-xl font-black italic tracking-tight">
+                    Selamat Datang di <span class="text-rose-500">StoryGen</span>
+                </h2>
+                <p class="text-xs text-zinc-500 mt-1">Baca tips ini sebelum mulai!</p>
+            </div>
+
+            <!-- Contoh Gambar Tips -->
+            <div class="w-full bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 mb-5 aspect-[4/3] flex items-center justify-center relative">
+                <img src="https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260430144912806.jpg" alt="Contoh" class="w-full h-full object-cover opacity-60">
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
+                    <p class="text-white font-bold text-sm drop-shadow-md">Teks biasa warnanya putih.</p>
+                    <p class="text-rose-500 font-black text-sm drop-shadow-md">Teks di dalam (kurung) warnanya merah.</p>
+                </div>
+            </div>
+
+            <!-- Daftar Tips -->
+            <ul class="space-y-3 text-xs text-zinc-300 font-medium mb-6">
+                <li class="flex gap-3 items-start">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
+                    Tulis teks andalanmu di kolom yang disediakan.
+                </li>
+                <li class="flex gap-3 items-start">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
+                    Bungkus kata dengan <b>(tanda kurung)</b> agar otomatis menjadi tebal dan berwarna merah.
+                </li>
+                <li class="flex gap-3 items-start">
+                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
+                    Klik Generate dan tunggu keajaiban terjadi.
+                </li>
+            </ul>
+
+            <!-- Tombol Paham -->
+            <button id="understandBtn" class="w-full bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors">
+                Gass, Paham!
+            </button>
+            <p id="countdownText" class="text-[10px] text-zinc-600 text-center mt-3 font-mono">
+                Menutup otomatis dalam 8s...
+            </p>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         HEADER UTAMA
+         ========================================== -->
+    <header class="relative z-10 w-full border-b border-white/5 bg-black/40 backdrop-blur-xl">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col items-center md:flex-row md:justify-between gap-4 text-center md:text-left">
+            <div class="flex flex-col items-center md:items-start">
+                <div class="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400 shadow-sm">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-500"></i> Vibe Generator
+                </div>
+                <h1 class="text-4xl md:text-5xl font-black tracking-tighter italic text-white/90">
+                    Story<span class="text-zinc-600 not-italic">Gen</span>
+                </h1>
+            </div>
+            <p class="text-zinc-500 text-sm font-medium max-w-sm leading-relaxed">
+                Bikin template fake story IG buat quotes, kata-kata mutiara, atau sekadar JJ. Bebas kreasi sepuasnya!
+            </p>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         MAIN CONTENT (KOLOM KIRI & KANAN)
+         ========================================== -->
+    <main class="relative z-10 flex-grow max-w-7xl w-full mx-auto px-6 py-10 md:py-16 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start">
+        
+        <!-- KOLOM KIRI: FORM INPUT -->
+        <div class="lg:col-span-6 space-y-10">
+            <div class="space-y-8">
+                
+                <!-- Input Nama Profil -->
+                <div class="group space-y-3">
+                    <label class="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 group-focus-within:text-rose-400 transition-colors">
+                        <i data-lucide="user" class="w-4 h-4"></i> Nama Profil
+                    </label>
+                    <input 
+                        type="text" 
+                        id="usernameInput" 
+                        class="w-full bg-zinc-900/40 border border-zinc-800 rounded-2xl p-4 focus:border-rose-500/50 focus:bg-zinc-900/60 focus:ring-4 focus:ring-rose-500/10 text-base font-semibold outline-none transition-all placeholder:text-zinc-700 text-zinc-200"
+                        placeholder="Contoh: Ditzzx Vibecoder"
+                    >
+                </div>
+
+                <!-- Input Upload Foto Profil -->
+                <div class="group space-y-3">
+                    <label class="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 group-focus-within:text-rose-400 transition-colors">
+                        <i data-lucide="image" class="w-4 h-4"></i> Foto Profil
+                    </label>
+                    
+                    <label class="flex items-center gap-4 p-4 border border-dashed border-zinc-700 rounded-2xl hover:border-zinc-500 hover:bg-zinc-900/40 transition-all cursor-pointer bg-zinc-900/20 group-hover:border-zinc-600">
+                        <div id="avatarPreviewContainer" class="w-14 h-14 rounded-full bg-zinc-950 border border-zinc-800 flex items-center justify-center shadow-inner overflow-hidden shrink-0">
+                            <i id="avatarIcon" data-lucide="upload" class="w-5 h-5 text-zinc-600"></i>
+                            <img id="avatarImage" src="" alt="Avatar" class="w-full h-full object-cover hidden">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span id="avatarLabel" class="text-sm font-semibold text-zinc-300">Pilih Foto Profil</span>
+                            <span class="text-[10px] text-zinc-600 font-medium tracking-wide">Mendukung format JPG, PNG (Maks 2MB)</span>
+                        </div>
+                        <!-- Input File Asli (Hidden) -->
+                        <input type="file" id="avatarInput" accept="image/*" class="hidden">
+                    </label>
+                </div>
+
+                <!-- Input Teks Narasi -->
+                <div class="group space-y-3">
+                    <label class="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500 group-focus-within:text-rose-400 transition-colors">
+                        <i data-lucide="quote" class="w-4 h-4"></i> Isi Kata-kata Story
+                    </label>
+                    <textarea 
+                        id="textInput" 
+                        rows="5"
+                        class="w-full bg-zinc-900/40 rounded-3xl p-5 text-sm font-medium leading-relaxed outline-none focus:border-rose-500/50 focus:bg-zinc-900/60 focus:ring-4 focus:ring-rose-500/10 transition-all resize-none border border-zinc-800 placeholder:text-zinc-700 text-zinc-300"
+                        placeholder="Contoh: Terkadang kita perlu (berhenti sejenak) untuk melihat sejauh mana kita melangkah..."
+                    ></textarea>
+                </div>
+
+                <!-- Tombol Generate -->
+                <div class="pt-2">
+                    <button 
+                        id="generateBtn"
+                        class="w-full flex items-center justify-center gap-3 bg-rose-600 hover:bg-rose-500 text-white py-4.5 p-4 rounded-2xl font-bold uppercase tracking-[0.15em] text-sm transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_30px_-10px_rgba(225,29,72,0.4)]"
+                    >
+                        <span id="btnText" class="flex items-center gap-2">
+                            <i data-lucide="wand-2" class="w-5 h-5"></i> Generate Story
+                        </span>
+                        <span id="btnLoading" class="hidden items-center gap-2">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> Sedang Meracik...
+                        </span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- KOLOM KANAN: PREVIEW HASIL -->
+        <div class="lg:col-span-6 flex flex-col items-center justify-center min-h-[600px] bg-zinc-900/10 rounded-[40px] border border-white/5 p-8 relative overflow-hidden">
+            
+            <!-- Efek Latar Belakang Lingkaran Blur -->
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-tr from-rose-500/5 via-transparent to-blue-500/5 rounded-full blur-[100px] -z-10"></div>
+
+            <!-- Tampilan Awal (Belum Ada Gambar) -->
+            <div id="emptyState" class="flex flex-col items-center justify-center text-center opacity-60 space-y-6 z-10">
+                <div class="w-24 h-24 rounded-full border border-dashed border-zinc-700 flex items-center justify-center bg-zinc-900/20">
+                    <i data-lucide="image" class="w-8 h-8 text-zinc-600"></i>
+                </div>
+                <div>
+                    <p class="text-zinc-300 font-bold uppercase tracking-[0.2em] text-xs mb-3">Area Preview</p>
+                    <p class="text-zinc-500 text-xs max-w-xs leading-relaxed">
+                        Isi form di samping dan klik generate untuk melihat hasil racikan story kamu.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Tampilan Hasil (Setelah Generate) -->
+            <div id="resultState" class="hidden relative group w-full max-w-[320px] mx-auto flex-col items-center gap-6 z-10">
+                <div class="relative w-full rounded-[32px] overflow-hidden shadow-2xl border-4 border-zinc-900 bg-black">
+                    <img id="resultImg" src="" alt="Hasil Story" class="w-full h-auto aspect-[9/16] object-cover">
+                </div>
+                
+                <div class="flex gap-3 w-full">
+                    <button id="downloadBtn" class="flex-1 flex items-center justify-center gap-2 bg-zinc-100 text-zinc-950 py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs hover:bg-white transition-all active:scale-[0.98]">
+                        <i data-lucide="download" class="w-4 h-4"></i> Simpan
+                    </button>
+                    <button class="flex-1 flex items-center justify-center gap-2 bg-zinc-900/80 border border-zinc-800 text-zinc-300 py-3.5 rounded-xl font-bold uppercase tracking-wider text-xs hover:text-white hover:bg-zinc-800 transition-all active:scale-[0.98]">
+                        <i data-lucide="share-2" class="w-4 h-4"></i> Bagikan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==========================================
+         FOOTER & IDENTITAS KREATOR
+         ========================================== -->
+    <footer class="w-full border-t border-white/5 bg-black/80 backdrop-blur-xl pt-10 pb-6 mt-10">
+        <div class="max-w-7xl mx-auto px-6">
+            
+            <div class="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
+                
+                <!-- Kotak Join Saluran WA (Kiri) -->
+                <a href="https://whatsapp.com/channel/0029VbBjyjlJ93wa6hwSWa0p" target="_blank" rel="noreferrer" class="flex items-center gap-4 bg-zinc-900/60 hover:bg-zinc-800/80 p-3 pr-6 rounded-2xl border border-white/5 transition-all group w-full md:w-auto">
+                    <!-- Icon WA Original -->
+                    <div class="w-12 h-12 rounded-full bg-[#25D366] flex items-center justify-center shadow-[0_0_15px_rgba(37,211,102,0.3)] group-hover:shadow-[0_0_25px_rgba(37,211,102,0.5)] transition-shadow">
+                        <svg class="w-7 h-7 text-white" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.03 0C5.385 0 .012 5.371.01 12.019a11.782 11.782 0 001.592 5.961L0 24l6.12-1.605a11.77 11.77 0 005.904 1.574h.005c6.645 0 12.019-5.372 12.021-12.021.001-3.222-1.248-6.251-3.515-8.519z"/>
+                        </svg>
+                    </div>
+                    <div class="flex flex-col">
+                        <p class="text-[9px] text-green-500 font-black uppercase tracking-[0.2em] mb-0.5">Saluran Kreator</p>
+                        <h3 class="text-xs font-bold text-zinc-200">✧･ﾟ: [𝙍]𝙝𝙢𝙏 | 𝘾𝙤𝙙𝙚⚙️𝘼𝙄 𝙡 :･ﾟ✧</h3>
+                    </div>
+                </a>
+
+                <!-- Daftar Social Media (Kanan) -->
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    
+                    <!-- Instagram -->
+                    <a href="https://www.instagram.com/rahmt_nhw?igsh=MWQwcnB3bTA2ZnVidg==" target="_blank" rel="noreferrer" class="p-3.5 bg-zinc-900/80 border border-white/5 rounded-xl hover:bg-zinc-800 hover:-translate-y-1 hover:text-rose-500 transition-all text-zinc-500">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
+                    </a>
+                    
+                    <!-- TikTok -->
+                    <a href="https://www.tiktok.com/@r_hmtofc?_r=1&_t=ZS-94KRfWQjeUu" target="_blank" rel="noreferrer" class="p-3.5 bg-zinc-900/80 border border-white/5 rounded-xl hover:bg-zinc-800 hover:-translate-y-1 hover:text-white transition-all text-zinc-500">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1.04-.1z"/></svg>
+                    </a>
+                    
+                    <!-- GitHub -->
+                    <a href="https://github.com/rahmat-369" target="_blank" rel="noreferrer" class="p-3.5 bg-zinc-900/80 border border-white/5 rounded-xl hover:bg-zinc-800 hover:-translate-y-1 hover:text-white transition-all text-zinc-500">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    </a>
+                    
+                    <!-- Telegram -->
+                    <a href="https://t.me/rAi_engine" target="_blank" rel="noreferrer" class="p-3.5 bg-zinc-900/80 border border-white/5 rounded-xl hover:bg-zinc-800 hover:-translate-y-1 hover:text-blue-400 transition-all text-zinc-500">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Credit Developer & Script Source -->
+            <div class="border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-2 text-[10px] uppercase tracking-widest font-bold">
+                <p class="text-zinc-500">
+                    Developed by <span class="text-zinc-300">r_hmt ofc</span>
+                </p>
+                <p class="text-zinc-600 flex items-center gap-2">
+                    Core Engine Script by 
+                    <a href="https://whatsapp.com/channel/0029Vb6GMVNGehERPKx21D20" target="_blank" rel="noreferrer" class="text-rose-500 hover:text-rose-400 hover:underline transition-colors flex items-center gap-1">
+                        Ditzz 
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                </p>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         JAVASCRIPT LOGIC
+         ========================================== -->
+    <script>
+        // Inisialisasi ikon UI dari Lucide
+        lucide.createIcons();
+
+        // ------------------------------------
+        // 1. LOGIC POPUP WELCOME
+        // ------------------------------------
+        const welcomePopup = document.getElementById('welcomePopup');
+        const popupBox = document.getElementById('popupBox');
+        const closePopupBtn = document.getElementById('closePopupBtn');
+        const understandBtn = document.getElementById('understandBtn');
+        const countdownText = document.getElementById('countdownText');
+        
+        let popupTimer;
+        let countdownInterval;
+        let timeLeft = 8;
+
+        // Fungsi Memunculkan Popup
+        function showPopup() {
+            welcomePopup.classList.add('popup-enter');
+            popupBox.classList.add('popup-scale');
+            
+            // Interval hitung mundur untuk menutup otomatis
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownText.innerText = `Menutup otomatis dalam ${timeLeft}s...`;
+                if (timeLeft <= 0) {
+                    hidePopup();
+                }
+            }, 1000);
+
+            // Timeout fallback jika interval error
+            popupTimer = setTimeout(hidePopup, 8000);
+        }
+
+        // Fungsi Menyembunyikan Popup
+        function hidePopup() {
+            welcomePopup.classList.remove('popup-enter');
+            popupBox.classList.remove('popup-scale');
+            
+            // Hapus timer berjalan
+            clearTimeout(popupTimer);
+            clearInterval(countdownInterval);
+        }
+
+        // Munculkan popup 1 detik setelah halaman web selesai loading
+        window.addEventListener('load', () => {
+            setTimeout(showPopup, 1000);
+        });
+
+        // Event penutup manual (klik X atau tombol Paham)
+        closePopupBtn.addEventListener('click', hidePopup);
+        understandBtn.addEventListener('click', hidePopup);
+
+
+        // ------------------------------------
+        // 2. LOGIC GENERATOR & FETCH API
+        // ------------------------------------
+        let avatarBase64 = null;
+        let generatedImageUrl = null;
+
+        // Ambil elemen-elemen DOM
+        const avatarInput = document.getElementById('avatarInput');
+        const avatarImage = document.getElementById('avatarImage');
+        const avatarIcon = document.getElementById('avatarIcon');
+        const avatarLabel = document.getElementById('avatarLabel');
+        const usernameInput = document.getElementById('usernameInput');
+        const textInput = document.getElementById('textInput');
+        
+        const generateBtn = document.getElementById('generateBtn');
+        const btnText = document.getElementById('btnText');
+        const btnLoading = document.getElementById('btnLoading');
+        
+        const emptyState = document.getElementById('emptyState');
+        const resultState = document.getElementById('resultState');
+        const resultImg = document.getElementById('resultImg');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Event saat gambar profil dipilih
+        avatarInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    // Simpan hasil konversi ke Base64
+                    avatarBase64 = reader.result;
+                    
+                    // Tampilkan gambar di layar (gantikan ikon upload)
+                    avatarImage.src = avatarBase64;
+                    avatarImage.classList.remove('hidden');
+                    avatarIcon.classList.add('hidden');
+                    avatarLabel.innerText = "Ganti Foto Profil";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Event saat tombol Generate ditekan
+        generateBtn.addEventListener('click', async () => {
+            // Ubah tampilan tombol jadi Loading
+            generateBtn.disabled = true;
+            btnText.classList.add('hidden');
+            btnText.classList.remove('flex');
+            btnLoading.classList.remove('hidden');
+            btnLoading.classList.add('flex');
+
+            try {
+                // Ambil nilai yang diketik, kalau kosong pakai kata di placeholder
+                const payloadName = usernameInput.value || usernameInput.placeholder;
+                const payloadText = textInput.value || textInput.placeholder;
+
+                /* * KODE ASLI FETCH KE BACKEND (Express / server.mjs kamu)
+                 * Silakan hapus komentar pada blok kode ini saat dijalankan di server
+                 * const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: payloadName,
+                        text: payloadText,
+                        pp: avatarBase64
+                    })
+                });
+                
+                if (!response.ok) throw new Error("Gagal merender gambar di server");
+                
+                // Ubah respon gambar langsung jadi Blob / Object URL
+                const blob = await response.blob();
+                generatedImageUrl = URL.createObjectURL(blob);
+                 */
+
+                // ----------------------------------------------------
+                // SIMULASI LOADING (Hapus bagian ini jika kode asli dipakai)
+                await new Promise(r => setTimeout(r, 2000));
+                generatedImageUrl = 'https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260430144912806.jpg'; 
+                // ----------------------------------------------------
+                
+                // Tampilkan hasil di kotak preview
+                resultImg.src = generatedImageUrl;
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+                resultState.classList.remove('hidden');
+                resultState.classList.add('flex');
+
+            } catch (error) {
+                console.error("Terjadi kesalahan:", error);
+                alert("Gagal meracik story! Pastikan server backend berjalan.");
+            } finally {
+                // Kembalikan tombol ke keadaan semula
+                generateBtn.disabled = false;
+                btnLoading.classList.add('hidden');
+                btnLoading.classList.remove('flex');
+                btnText.classList.remove('hidden');
+                btnText.classList.add('flex');
+            }
+        });
+
+        // Event saat tombol Simpan ditekan
+        downloadBtn.addEventListener('click', () => {
+            if (!generatedImageUrl) return;
+            
+            // Buat elemen link tersembunyi untuk mendownload gambar
+            const a = document.createElement('a');
+            a.href = generatedImageUrl;
+            a.download = `StoryGen_${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+    </script>
+</body>
+                  </html>
