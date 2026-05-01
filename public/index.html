@@ -416,35 +416,7 @@
             btnLoading.classList.add('flex');
 
             try {
-                // Ambil nilai yang diketik, kalau kosong pakai kata di placeholder
-                const payloadName = usernameInput.value || usernameInput.placeholder;
-                const payloadText = textInput.value || textInput.placeholder;
-
-                /* * KODE ASLI FETCH KE BACKEND (Express / server.mjs kamu)
-                 * Silakan hapus komentar pada blok kode ini saat dijalankan di server
-                 * const response = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        name: payloadName,
-                        text: payloadText,
-                        pp: avatarBase64
-                    })
-                });
-                
-                if (!response.ok) throw new Error("Gagal merender gambar di server");
-                
-                // Ubah respon gambar langsung jadi Blob / Object URL
-                const blob = await response.blob();
-                generatedImageUrl = URL.createObjectURL(blob);
-                 */
-
-                // ----------------------------------------------------
-                // SIMULASI LOADING (Hapus bagian ini jika kode asli dipakai)
-                await new Promise(r => setTimeout(r, 2000));
-                generatedImageUrl = 'https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260430144912806.jpg'; 
-                // ----------------------------------------------------
-                
+                generateBtn.addEventListener
                 // Tampilkan hasil di kotak preview
                 resultImg.src = generatedImageUrl;
                 emptyState.classList.add('hidden');
