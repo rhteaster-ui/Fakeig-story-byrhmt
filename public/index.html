@@ -121,8 +121,9 @@
                 <div class="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-white/5 border border-white/10 text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-400 shadow-sm">
                     <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-500"></i> Vibe Generator
                 </div>
+                <!-- Jarak Story dan Gen ditambahin (ml-2) biar gak tumpang tindih -->
                 <h1 class="text-4xl md:text-5xl font-black tracking-tighter italic text-white/90">
-                    Story<span class="text-zinc-600 not-italic">Gen</span>
+                    Story<span class="text-zinc-600 not-italic ml-2">Gen</span>
                 </h1>
             </div>
             <p class="text-zinc-500 text-sm font-medium max-w-sm leading-relaxed">
@@ -416,7 +417,30 @@
             btnLoading.classList.add('flex');
 
             try {
-                generateBtn.addEventListener
+                // Ambil nilai yang diketik, kalau kosong pakai kata di placeholder
+                const payloadName = usernameInput.value || usernameInput.placeholder;
+                const payloadText = textInput.value || textInput.placeholder;
+
+                // Memanggil API Backend Vercel
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: payloadName,
+                        text: payloadText,
+                        pp: avatarBase64
+                    })
+                });
+                
+                // Cek apakah response dari server gagal
+                if (!response.ok) {
+                    throw new Error("Gagal merender gambar di server Vercel");
+                }
+                
+                // Ubah respon dari server menjadi data Blob URL gambar
+                const blob = await response.blob();
+                generatedImageUrl = URL.createObjectURL(blob);
+                
                 // Tampilkan hasil di kotak preview
                 resultImg.src = generatedImageUrl;
                 emptyState.classList.add('hidden');
@@ -426,7 +450,7 @@
 
             } catch (error) {
                 console.error("Terjadi kesalahan:", error);
-                alert("Gagal meracik story! Pastikan server backend berjalan.");
+                alert("Gagal meracik story! Cek Console atau Logs Vercel untuk detailnya.");
             } finally {
                 // Kembalikan tombol ke keadaan semula
                 generateBtn.disabled = false;
@@ -452,4 +476,4 @@
 
     </script>
 </body>
-                  </html>
+                    </html> 
