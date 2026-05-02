@@ -1,43 +1,29 @@
-import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
+import { Canvas, loadImage, FontLibrary } from 'skia-canvas'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import path from 'path'
-import os from 'os'
 
-async function ensureFile(url, filePath) {
-  if (fs.existsSync(filePath)) return
-
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`Failed to fetch asset: ${url} (${res.status})`)
+async function ensureFile(url, path) {
+  if (!fs.existsSync(path)) {
+    const res = await fetch(url)
+    const buf = Buffer.from(await res.arrayBuffer())
+    fs.writeFileSync(path, buf)
   }
-
-  const buf = Buffer.from(await res.arrayBuffer())
-  fs.writeFileSync(filePath, buf)
 }
 
 async function generate(pp, name, text) {
-  const tmpDir = os.tmpdir()
-  const fontDir = path.join(tmpDir, 'font')
-  const bgPath = path.join(tmpDir, 'bg-template.jpg')
-  const fontSBPath = path.join(fontDir, 'Inter-SemiBold.otf')
-  const fontBPath = path.join(fontDir, 'Inter-Bold.otf')
+  if (!fs.existsSync('./font')) fs.mkdirSync('./font')
 
-  if (!fs.existsSync(fontDir)) fs.mkdirSync(fontDir, { recursive: true })
+  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/Inter-SemiBold.otf', './font/Inter-SemiBold.otf')
+  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/Inter-Bold.otf', './font/Inter-Bold.otf')
+  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260430144912806.jpg', './bg-template.jpg')
 
-  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/Inter-SemiBold.otf', fontSBPath)
-  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Font/Inter-Bold.otf', fontBPath)
-  await ensureFile('https://raw.githubusercontent.com/Ditzzx-vibecoder/Assets/main/Image/_20260430144912806.jpg', bgPath)
+  FontLibrary.use('Inter-SB', ['./font/Inter-SemiBold.otf'])
+  FontLibrary.use('Inter-B', ['./font/Inter-Bold.otf'])
 
-  // @napi-rs/canvas pakai GlobalFonts.registerFromPath
-  GlobalFonts.registerFromPath(fontSBPath, 'Inter-SB')
-  GlobalFonts.registerFromPath(fontBPath, 'Inter-B')
-
-  let bg = await loadImage(bgPath)
+  let bg = await loadImage('./bg-template.jpg')
   let avatar = await loadImage(pp)
 
-  // @napi-rs/canvas pakai createCanvas bukan new Canvas
-  let canvas = createCanvas(bg.width, bg.height)
+  let canvas = new Canvas(bg.width, bg.height)
   let ctx = canvas.getContext('2d')
   ctx.imageSmoothingEnabled = true
   ctx.imageSmoothingQuality = 'high'
@@ -95,76 +81,66 @@ async function generate(pp, name, text) {
     return tokens
   }
 
-  // Ukur lebar satu token dengan font yang sesuai
-  function measureToken(ctx, token, fsz) {
-    ctx.font = `bold ${fsz}px "${token.red ? 'Inter-B' : 'Inter-SB'}"`
-    return ctx.measureText(token.text).width
-  }
-
-  // Wrap token-token jadi baris, setiap baris = array segment { text, red }
+  // Wrap token-token jadi baris yang bebas dari spasi nyasar/newline
   function wrapTokens(ctx, tokens, maxWidth, fsz) {
-    let lines = []      // hasil: array of array of { text, red }
-    let curLine = []    // segmen di baris saat ini
+    let lines = []
+    let curLine = []
     let curW = 0
+    ctx.font = `bold ${fsz}px "Inter-SB"`
+    let spaceW = ctx.measureText(' ').width
 
-    // Pecah semua token jadi per-kata dulu
-    let words = []
     for (let tok of tokens) {
-      let parts = tok.text.split(/(\s+)/)
+      // Pisahkan berdasarkan newline (\n) dan spasi
+      let parts = tok.text.split(/(\n|\s+)/)
+      
       for (let p of parts) {
-        if (p === '') continue
-        words.push({ text: p, red: tok.red })
-      }
-    }
+        if (!p) continue
 
-    for (let word of words) {
-      // Spasi murni: langsung tambah ke baris saat ini
-      if (/^\s+$/.test(word.text)) {
-        if (curLine.length > 0) {
-          ctx.font = `bold ${fsz}px "Inter-SB"`
-          let spaceW = ctx.measureText(' ').width
-          curW += spaceW
-          let last = curLine[curLine.length - 1]
-          if (last.red === word.red) last.text += word.text
-          else curLine.push({ text: word.text, red: word.red })
-        }
-        continue
-      }
-
-      ctx.font = `bold ${fsz}px "${word.red ? 'Inter-B' : 'Inter-SB'}"`
-      let wordW = ctx.measureText(word.text).width
-      ctx.font = `bold ${fsz}px "Inter-SB"`
-      let spaceW = ctx.measureText(' ').width
-
-      let addW = curLine.length > 0 ? spaceW + wordW : wordW
-
-      if (curW + addW > maxWidth && curLine.length > 0) {
-        // Potong spasi trailing di baris
-        lines.push(curLine)
-        curLine = [{ text: word.text, red: word.red }]
-        curW = wordW
-      } else {
-        if (curLine.length > 0) {
-          // Tambah spasi sebelum kata
-          let last = curLine[curLine.length - 1]
-          if (last.red === word.red) {
-            last.text += ' ' + word.text
-          } else {
-            curLine.push({ text: ' ', red: false })
-            curLine.push({ text: word.text, red: word.red })
+        // Handle Newline Manual (Enter)
+        if (p.includes('\n')) {
+          let newlines = p.match(/\n/g).length
+          for (let i = 0; i < newlines; i++) {
+            if (curLine.length > 0 && curLine[curLine.length - 1].text === ' ') curLine.pop()
+            lines.push(curLine)
+            curLine = []
+            curW = 0
           }
-          curW += spaceW + wordW
-        } else {
-          curLine.push({ text: word.text, red: word.red })
+          continue
+        }
+
+        // Handle Spasi
+        if (/^\s+$/.test(p)) {
+          if (curLine.length > 0 && curLine[curLine.length - 1].text !== ' ') {
+            curLine.push({ text: ' ', red: false })
+            curW += spaceW
+          }
+          continue
+        }
+
+        // Handle Kata Biasa
+        ctx.font = `bold ${fsz}px "${tok.red ? 'Inter-B' : 'Inter-SB'}"`
+        let wordW = ctx.measureText(p).width
+
+        if (curLine.length > 0 && curW + wordW > maxWidth) {
+          if (curLine[curLine.length - 1].text === ' ') curLine.pop()
+          lines.push(curLine)
+          curLine = [{ text: p, red: tok.red }]
           curW = wordW
+        } else {
+          curLine.push({ text: p, red: tok.red })
+          curW += wordW
         }
       }
     }
-    if (curLine.length > 0) lines.push(curLine)
+    
+    if (curLine.length > 0) {
+      if (curLine[curLine.length - 1].text === ' ') curLine.pop()
+      if (curLine.length > 0) lines.push(curLine)
+    }
+    
     return lines
   }
 
-  // Hitung total lebar satu baris (array segment)
   function lineWidth(ctx, segments, fsz) {
     return segments.reduce((sum, seg) => {
       ctx.font = `bold ${fsz}px "${seg.red ? 'Inter-B' : 'Inter-SB'}"`
@@ -217,6 +193,10 @@ async function generate(pp, name, text) {
 
     for (let i = 0; i < lines.length; i++) {
       let segments = lines[i]
+      
+      // Lewati baris kosong biar gak error kalkulasi center
+      if (segments.length === 0) continue
+
       let totalW = lineWidth(ctx, segments, fsz)
       let x = safeCX - totalW / 2
       let y = startY + i * lh
@@ -232,8 +212,7 @@ async function generate(pp, name, text) {
   }
 
   drawScaledText(ctx, text)
-  // @napi-rs/canvas: toBuffer pakai encode('png') atau await canvas.encode('png')
-  return await canvas.encode('png')
+  return await canvas.toBuffer('png')
 }
 
 const isMain = process.argv[1] === fileURLToPath(import.meta.url)
