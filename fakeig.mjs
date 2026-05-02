@@ -81,61 +81,66 @@ async function generate(pp, name, text) {
     return tokens
   }
 
-  // Wrap token-token jadi baris yang bebas dari spasi nyasar/newline
+  // Wrap token-token jadi baris yang bebas dari error Vercel
   function wrapTokens(ctx, tokens, maxWidth, fsz) {
     let lines = []
     let curLine = []
     let curW = 0
+    
     ctx.font = `bold ${fsz}px "Inter-SB"`
     let spaceW = ctx.measureText(' ').width
 
-    for (let tok of tokens) {
-      // Pisahkan berdasarkan newline (\n) dan spasi
-      let parts = tok.text.split(/(\n|\s+)/)
-      
-      for (let p of parts) {
-        if (!p) continue
-
-        // Handle Newline Manual (Enter)
-        if (p.includes('\n')) {
-          let newlines = p.match(/\n/g).length
-          for (let i = 0; i < newlines; i++) {
-            if (curLine.length > 0 && curLine[curLine.length - 1].text === ' ') curLine.pop()
-            lines.push(curLine)
-            curLine = []
-            curW = 0
-          }
-          continue
-        }
-
-        // Handle Spasi
-        if (/^\s+$/.test(p)) {
-          if (curLine.length > 0 && curLine[curLine.length - 1].text !== ' ') {
-            curLine.push({ text: ' ', red: false })
-            curW += spaceW
-          }
-          continue
-        }
-
-        // Handle Kata Biasa
-        ctx.font = `bold ${fsz}px "${tok.red ? 'Inter-B' : 'Inter-SB'}"`
-        let wordW = ctx.measureText(p).width
-
-        if (curLine.length > 0 && curW + wordW > maxWidth) {
-          if (curLine[curLine.length - 1].text === ' ') curLine.pop()
-          lines.push(curLine)
-          curLine = [{ text: p, red: tok.red }]
-          curW = wordW
-        } else {
-          curLine.push({ text: p, red: tok.red })
-          curW += wordW
-        }
-      }
+    // Gabungkan dulu semua teks aslinya
+    let fullText = ""
+    for (let t of tokens) {
+        fullText += t.red ? `(${t.text})` : t.text
     }
-    
-    if (curLine.length > 0) {
-      if (curLine[curLine.length - 1].text === ' ') curLine.pop()
-      if (curLine.length > 0) lines.push(curLine)
+
+    // Pisah berdasarkan baris beneran (\n) dulu
+    let manualLines = fullText.split('\n')
+
+    for (let manualLine of manualLines) {
+        if (manualLine.trim() === '') {
+            lines.push([]) 
+            continue
+        }
+
+        let lineTokens = parseTokens(manualLine)
+        curLine = []
+        curW = 0
+
+        for (let tok of lineTokens) {
+            let words = tok.text.split(/(\s+)/).filter(Boolean)
+
+            for (let word of words) {
+                if (/^\s+$/.test(word)) {
+                    if (curLine.length > 0 && curLine[curLine.length - 1].text !== ' ') {
+                        curLine.push({ text: ' ', red: false })
+                        curW += spaceW
+                    }
+                    continue
+                }
+
+                ctx.font = `bold ${fsz}px "${tok.red ? 'Inter-B' : 'Inter-SB'}"`
+                let wordW = ctx.measureText(word).width
+
+                if (curLine.length > 0 && curW + wordW > maxWidth) {
+                    if (curLine.length > 0 && curLine[curLine.length - 1].text === ' ') curLine.pop()
+                    lines.push(curLine)
+                    
+                    curLine = [{ text: word, red: tok.red }]
+                    curW = wordW
+                } else {
+                    curLine.push({ text: word, red: tok.red })
+                    curW += wordW
+                }
+            }
+        }
+        
+        if (curLine.length > 0) {
+            if (curLine[curLine.length - 1].text === ' ') curLine.pop()
+            lines.push(curLine)
+        }
     }
     
     return lines
@@ -171,18 +176,20 @@ async function generate(pp, name, text) {
       lines = lines.slice(0, maxLines)
       if (lines.length > 0) {
         let lastLine = lines[lines.length - 1]
-        ctx.font = `bold ${fsz}px "Inter-SB"`
-        let dotsW = ctx.measureText('...').width
-        while (lineWidth(ctx, lastLine, fsz) + dotsW > safeW) {
-          let last = lastLine[lastLine.length - 1]
-          if (last.text.length > 1) {
-            last.text = last.text.slice(0, -1).trimEnd()
-          } else {
-            lastLine.pop()
-            if (lastLine.length === 0) break
-          }
+        if(lastLine && lastLine.length > 0) {
+            ctx.font = `bold ${fsz}px "Inter-SB"`
+            let dotsW = ctx.measureText('...').width
+            while (lineWidth(ctx, lastLine, fsz) + dotsW > safeW) {
+              let last = lastLine[lastLine.length - 1]
+              if (last.text.length > 1) {
+                last.text = last.text.slice(0, -1).trimEnd()
+              } else {
+                lastLine.pop()
+                if (lastLine.length === 0) break
+              }
+            }
+            lastLine.push({ text: '...', red: false })
         }
-        lastLine.push({ text: '...', red: false })
       }
       totalH = lines.length * lh
     }
@@ -194,8 +201,8 @@ async function generate(pp, name, text) {
     for (let i = 0; i < lines.length; i++) {
       let segments = lines[i]
       
-      // Lewati baris kosong biar gak error kalkulasi center
-      if (segments.length === 0) continue
+      // Lewati baris kosong biar gak error
+      if (!segments || segments.length === 0) continue
 
       let totalW = lineWidth(ctx, segments, fsz)
       let x = safeCX - totalW / 2
