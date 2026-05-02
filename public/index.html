@@ -62,53 +62,14 @@
          POPUP WELCOME & TIPS
          ========================================== -->
     <div id="welcomePopup" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-500 p-4">
-        <div id="popupBox" class="bg-zinc-950 border border-zinc-800 p-6 rounded-[32px] max-w-sm w-full transform scale-90 transition-transform duration-500 shadow-2xl relative">
-            
-            <!-- Tombol Close (X) -->
-            <button id="closePopupBtn" class="absolute top-4 right-4 bg-zinc-900 text-zinc-400 hover:text-white p-2 rounded-full transition-colors">
-                <i data-lucide="x" class="w-4 h-4"></i>
+        <div id="popupBox" class="bg-zinc-950 border border-zinc-800 p-3 rounded-2xl max-w-[220px] w-full transform scale-90 transition-transform duration-500 shadow-2xl relative">
+            <button id="closePopupBtn" class="absolute top-2 right-2 bg-zinc-900/90 text-zinc-400 hover:text-white p-1.5 rounded-full transition-colors z-10">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
             </button>
 
-            <!-- Judul Popup -->
-            <div class="text-center mb-6 mt-2">
-                <h2 class="text-xl font-black italic tracking-tight">
-                    Selamat Datang di <span class="text-rose-500">StoryGen</span>
-                </h2>
-                <p class="text-xs text-zinc-400 mt-1 leading-relaxed">Baca sebentar biar cara pakainya jelas dan hasil story kamu lebih bagus.</p>
+            <div class="w-full rounded-xl overflow-hidden border border-zinc-800 aspect-[9/16]">
+                <img src="https://raw.githubusercontent.com/rhteaster-ui/Image/refs/heads/main/Screenshot_2026-05-02-12-59-22-51.png" alt="Preview story 9:16" class="w-full h-full object-cover">
             </div>
-
-            <!-- Contoh Gambar Tips -->
-            <div class="w-full bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 mb-5 aspect-[4/3] flex items-center justify-center relative">
-                <img src="https://raw.githubusercontent.com/rhteaster-ui/Image/refs/heads/main/Screenshot_2026-05-02-12-59-22-51.png" alt="Contoh tampilan story" class="w-full h-full object-cover opacity-70">
-                <div class="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                    <p class="text-white font-bold text-sm drop-shadow-md">Teks biasa akan tampil warna putih.</p>
-                    <p class="text-rose-400 font-black text-sm drop-shadow-md">Teks dalam (kurung) akan otomatis merah dan lebih menonjol.</p>
-                </div>
-            </div>
-
-            <!-- Daftar Tips -->
-            <ul class="space-y-3 text-xs text-zinc-300 font-medium mb-6">
-                <li class="flex gap-3 items-start">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
-                    Isi nama profil dan teks story kamu di kolom yang tersedia.
-                </li>
-                <li class="flex gap-3 items-start">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
-                    Gunakan <b>(tanda kurung)</b> pada kata penting supaya otomatis jadi lebih tebal dan merah.
-                </li>
-                <li class="flex gap-3 items-start">
-                    <i data-lucide="check-circle-2" class="w-4 h-4 text-green-500 shrink-0"></i> 
-                    Tekan tombol Generate, lalu tunggu hasilnya muncul di area preview.
-                </li>
-            </ul>
-
-            <!-- Tombol Paham -->
-            <button id="understandBtn" class="w-full bg-white hover:bg-zinc-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-widest transition-colors">
-                Gass, Paham!
-            </button>
-            <p id="countdownText" class="text-[10px] text-zinc-600 text-center mt-3 font-mono">
-                Popup akan menutup otomatis dalam 10s...
-            </p>
         </div>
     </div>
 
@@ -320,39 +281,17 @@
         const welcomePopup = document.getElementById('welcomePopup');
         const popupBox = document.getElementById('popupBox');
         const closePopupBtn = document.getElementById('closePopupBtn');
-        const understandBtn = document.getElementById('understandBtn');
-        const countdownText = document.getElementById('countdownText');
-        
-        let popupTimer;
-        let countdownInterval;
-        let timeLeft = 10;
 
         // Fungsi Memunculkan Popup
         function showPopup() {
             welcomePopup.classList.add('popup-enter');
             popupBox.classList.add('popup-scale');
-            
-            // Interval hitung mundur untuk menutup otomatis
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                countdownText.innerText = `Popup akan menutup otomatis dalam ${timeLeft}s...`;
-                if (timeLeft <= 0) {
-                    hidePopup();
-                }
-            }, 1000);
-
-            // Timeout fallback jika interval error
-            popupTimer = setTimeout(hidePopup, 10000);
         }
 
         // Fungsi Menyembunyikan Popup
         function hidePopup() {
             welcomePopup.classList.remove('popup-enter');
             popupBox.classList.remove('popup-scale');
-            
-            // Hapus timer berjalan
-            clearTimeout(popupTimer);
-            clearInterval(countdownInterval);
         }
 
         // Munculkan popup 1 detik setelah halaman web selesai loading
@@ -360,9 +299,8 @@
             setTimeout(showPopup, 1000);
         });
 
-        // Event penutup manual (klik X atau tombol Paham)
+        // Event penutup manual (klik X)
         closePopupBtn.addEventListener('click', hidePopup);
-        understandBtn.addEventListener('click', hidePopup);
 
 
         // ------------------------------------
